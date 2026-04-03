@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petualangan Kebun Angka - Kelas 2 SD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: #e0f2fe;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .font-fun {
+            font-family: 'Fredoka One', cursive;
+        }
+        .bg-garden {
+            background-color: #86efac;
+            background-image: radial-gradient(#4ade80 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+        .board-cell {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        .player-token {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .modal-enter {
+            animation: scaleIn 0.3s ease-out;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-garden min-h-screen">
+
+    <div id="app" class="max-w-5xl mx-auto p-4 md:p-8">
+        
+        <!-- Menu Utama -->
+        <div id="main-menu" class="bg-white rounded-3xl p-8 shadow-2xl text-center border-8 border-yellow-400">
+            <h1 class="text-4xl md:text-6xl text-green-600 mb-4 tracking-wide">🍎 Petualangan Kebun Angka 🍎</h1>
+            <p class="text-xl md:text-2xl text-blue-500 mb-8 font-bold italic">Ayo Belajar Penjumlahan & Pengurangan sampai 20!</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <button onclick="startGame('single')" class="bg-blue-500 hover:bg-blue-600 text-white p-6 rounded-2xl shadow-lg transform hover:scale-105 transition">
+                    <div class="text-5xl mb-2">🙋‍♂️</div>
+                    <div class="text-2xl font-fun">Individu</div>
+                    <p class="text-sm opacity-90">Bermain Sendiri</p>
+                </button>
+                <button onclick="startGame('versus')" class="bg-red-500 hover:bg-red-600 text-white p-6 rounded-2xl shadow-lg transform hover:scale-105 transition">
+                    <div class="text-5xl mb-2">⚔️</div>
+                    <div class="text-2xl font-fun">Lawan Teman</div>
+                    <p class="text-sm opacity-90">Duel 1 vs 1</p>
+                </button>
+                <button onclick="startGame('group')" class="bg-purple-500 hover:bg-purple-600 text-white p-6 rounded-2xl shadow-lg transform hover:scale-105 transition">
+                    <div class="text-5xl mb-2">👫</div>
+                    <div class="text-2xl font-fun">Kelompok</div>
+                    <p class="text-sm opacity-90">2-4 Regu</p>
+                </button>
+            </div>
+
+            <div class="bg-yellow-50 p-4 rounded-xl border-2 border-dashed border-yellow-300">
+                <h3 class="text-xl font-bold text-yellow-700 mb-2">📜 Cara Bermain:</h3>
+                <ul class="text-left text-gray-700 space-y-1 inline-block">
+                    <li>✅ Pilih mode permainanmu.</li>
+                    <li>✅ Lempar dadu untuk jalan di papan kebun.</li>
+                    <li>✅ Jawab soal matematika dengan benar untuk maju.</li>
+                    <li>✅ Capai garis FINISH untuk menang!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Area Permainan -->
+        <div id="game-area" class="hidden">
+            <!-- Header Status -->
+            <div class="flex flex-wrap justify-between items-center bg-white p-4 rounded-2xl shadow-md mb-6 border-4 border-blue-400">
+                <div id="turn-indicator" class="text-2xl font-fun text-blue-600">Giliran: Pemain 1</div>
+                <div class="flex gap-4">
+                    <div class="bg-yellow-100 px-4 py-2 rounded-full font-bold text-yellow-700">⭐ Skor: <span id="current-score">0</span></div>
+                    <button onclick="resetGame()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-full font-bold text-gray-600">Keluar</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Papan Jalur -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-xl border-4 border-green-500">
+                    <div id="board-grid" class="grid grid-cols-5 gap-3">
+                        <!-- Jalur diisi via JS -->
+                    </div>
+                </div>
+
+                <!-- Kontrol & Scoreboard -->
+                <div class="bg-white p-6 rounded-3xl shadow-xl border-4 border-purple-400 flex flex-col items-center">
+                    <h3 class="text-2xl font-fun text-purple-600 mb-4 underline">Scoreboard</h3>
+                    <div id="scoreboard-list" class="w-full space-y-3 mb-6">
+                        <!-- List skor -->
+                    </div>
+
+                    <div id="dice-container" class="text-center">
+                        <div id="dice-face" class="text-7xl mb-4 animate-bounce-slow">🎲</div>
+                        <button id="roll-btn" onclick="rollDice()" class="bg-gradient-to-r from-orange-400 to-red-500 text-white text-2xl font-fun px-8 py-4 rounded-full shadow-lg hover:brightness-110 active:scale-95 transition">KOCOK DADU!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Soal -->
+        <div id="question-modal" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-3xl p-8 max-w-2xl w-full text-center modal-enter border-8 border-blue-500">
+                <div class="flex justify-between mb-4">
+                    <span class="text-xl font-bold text-blue-500">Selesaikan Soal Ini!</span>
+                    <span id="timer-display" class="bg-red-500 text-white px-4 py-1 rounded-full font-bold">⏱ 15s</span>
+                </div>
+                
+                <div id="visual-objects" class="flex flex-wrap justify-center gap-2 mb-6 min-h-[120px] bg-sky-50 p-4 rounded-2xl border-2 border-sky-100">
+                    <!-- Objek konkret muncul di sini -->
+                </div>
+
+                <div id="question-text" class="text-4xl md:text-5xl font-fun text-gray-800 mb-8">7 + 5 = ?</div>
+                
+                <div id="answer-options" class="grid grid-cols-2 gap-4">
+                    <!-- Tombol pilihan -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Reward / Feedback -->
+        <div id="feedback-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50">
+            <div id="feedback-content" class="bg-white rounded-3xl p-10 text-center modal-enter shadow-2xl">
+                <div id="feedback-icon" class="text-8xl mb-4">✨</div>
+                <h2 id="feedback-title" class="text-4xl font-fun mb-2">HEBAT!</h2>
+                <p id="feedback-msg" class="text-xl text-gray-600 mb-6">Jawabanmu tepat sekali. Ayo maju!</p>
+                <button onclick="closeFeedback()" class="bg-blue-500 text-white px-8 py-3 rounded-full font-bold text-xl">Lanjutkan</button>
+            </div>
+        </div>
+
+        <!-- Modal Pemenang -->
+        <div id="winner-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50 text-center">
+            <div class="bg-white rounded-[3rem] p-12 max-w-lg w-full modal-enter border-8 border-yellow-400">
+                <div class="text-9xl mb-4">🏆</div>
+                <h1 class="text-5xl font-fun text-yellow-600 mb-2">JUARA!</h1>
+                <p id="winner-name" class="text-3xl font-bold text-purple-600 mb-6">Pemain 1</p>
+                <div id="final-stats" class="text-xl text-gray-700 mb-8"></div>
+                <button onclick="location.reload()" class="bg-green-500 text-white text-2xl font-fun px-10 py-4 rounded-full shadow-xl hover:bg-green-600 transition">Main Lagi</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const BOARD_SIZE = 15;
+        const OBJECTS = {
+            apple: '🍎',
+            candy: '🍬',
+            balloon: '🎈',
+            cat: '🐱',
+            bee: '🐝',
+            star: '⭐'
+        };
+
+        let gameState = {
+            mode: 'single', // single, versus, group
+            players: [], // {id, name, pos, score, color, emoji}
+            currentPlayerIdx: 0,
+            board: [],
+            activeQuestion: null,
+            timer: null,
+            timeLeft: 15,
+            isRolling: false
+        };
+
+        const questions = [
+            { a: 5, b: 3, op: '+', obj: 'apple' },
+            { a: 10, b: 5, op: '-', obj: 'candy' },
+            { a: 7, b: 4, op: '+', obj: 'balloon' },
+            { a: 12, b: 4, op: '-', obj: 'cat' },
+            { a: 8, b: 8, op: '+', obj: 'bee' },
+            { a: 15, b: 7, op: '-', obj: 'star' },
+            { a: 6, b: 9, op: '+', obj: 'apple' },
+            { a: 18, b: 6, op: '-', obj: 'candy' },
+            { a: 9, b: 4, op: '+', obj: 'balloon' },
+            { a: 20, b: 12, op: '-', obj: 'cat' },
+            { a: 11, b: 5, op: '+', obj: 'bee' },
+            { a: 14, b: 9, op: '-', obj: 'star' },
+            { a: 13, b: 6, op: '+', obj: 'apple' },
+            { a: 19, b: 10, op: '-', obj: 'candy' },
+            { a: 8, b: 5, op: '+', obj: 'balloon' }
+        ];
+
+        function startGame(mode) {
+            gameState.mode = mode;
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+
+            if (mode === 'single') {
+                gameState.players = [{ id: 0, name: 'Pemain', pos: 0, score: 0, color: 'bg-blue-500', emoji: '👦' }];
+            } else if (mode === 'versus') {
+                gameState.players = [
+                    { id: 0, name: 'Pemain 1', pos: 0, score: 0, color: 'bg-blue-500', emoji: '👦' },
+                    { id: 1, name: 'Pemain 2', pos: 0, score: 0, color: 'bg-red-500', emoji: '👧' }
+                ];
+            } else {
+                gameState.players = [
+                    { id: 0, name: 'Regu Elang', pos: 0, score: 0, color: 'bg-blue-500', emoji: '🦅' },
+                    { id: 1, name: 'Regu Harimau', pos: 0, score: 0, color: 'bg-orange-500', emoji: '🐯' },
+                    { id: 2, name: 'Regu Kelinci', pos: 0, score: 0, color: 'bg-pink-500', emoji: '🐰' }
+                ];
+            }
+
+            initBoard();
+            updateScoreboard();
+            updateTurnIndicator();
+        }
+
+        function initBoard() {
+            const grid = document.getElementById('board-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i <= BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = `board-cell h-20 md:h-24 rounded-2xl flex items-center justify-center text-xl font-bold border-2 relative
+                    ${i === 0 ? 'bg-yellow-300 border-yellow-500' : (i === BOARD_SIZE ? 'bg-green-400 border-green-600' : 'bg-white border-gray-200')}`;
+                
+                if (i === 0) cell.innerHTML = 'Mulai';
+                else if (i === BOARD_SIZE) cell.innerHTML = 'FINISH';
+                else cell.innerHTML = i;
+
+                cell.id = `cell-${i}`;
+                grid.appendChild(cell);
+            }
+            renderPlayers();
+        }
+
+        function renderPlayers() {
+            // Hapus token lama
+            document.querySelectorAll('.player-token').forEach(el => el.remove());
+            
+            gameState.players.forEach(p => {
+                const targetCell = document.getElementById(`cell-${p.pos}`);
+                const token = document.createElement('div');
+                token.className = `player-token absolute w-10 h-10 ${p.color} rounded-full flex items-center justify-center text-xl z-10 border-2 border-white`;
+                token.innerHTML = p.emoji;
+                token.style.transform = `translate(${p.id * 8}px, ${p.id * 8}px)`; // Offset sedikit biar tidak tumpuk
+                targetCell.appendChild(token);
+            });
+        }
+
+        function updateScoreboard() {
+            const list = document.getElementById('scoreboard-list');
+            list.innerHTML = '';
+            gameState.players.forEach(p => {
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center p-3 rounded-xl border-2 ${p.id === gameState.currentPlayerIdx ? 'border-yellow-400 bg-yellow-50 animate-pulse' : 'border-gray-100'}`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">${p.emoji}</span>
+                        <span class="font-bold">${p.name}</span>
+                    </div>
+                    <div class="font-fun text-blue-600 text-xl">${p.score}</div>
+                `;
+                list.appendChild(item);
+            });
+            
+            const currentP = gameState.players[gameState.currentPlayerIdx];
+            document.getElementById('current-score').innerText = currentP.score;
+        }
+
+        function updateTurnIndicator() {
+            const p = gameState.players[gameState.currentPlayerIdx];
+            const indicator = document.getElementById('turn-indicator');
+            indicator.innerText = `Giliran: ${p.name}`;
+            indicator.className = `text-2xl font-fun ${p.color.replace('bg-', 'text-')}`;
+        }
+
+        function rollDice() {
+            if (gameState.isRolling) return;
+            gameState.isRolling = true;
+            const btn = document.getElementById('roll-btn');
+            const face = document.getElementById('dice-face');
+            
+            btn.disabled = true;
+            let count = 0;
+            const interval = setInterval(() => {
+                const rand = Math.floor(Math.random() * 6) + 1;
+                face.innerText = ['⚀','⚁','⚂','⚃','⚄','⚅'][rand-1];
+                count++;
+                if (count > 10) {
+                    clearInterval(interval);
+                    const steps = Math.floor(Math.random() * 3) + 1; // Langkah 1-3 agar game tidak terlalu cepat
+                    face.innerText = ['⚀','⚁','⚂','⚃','⚄','⚅'][steps-1];
+                    setTimeout(() => showQuestion(steps), 500);
+                }
+            }, 100);
+        }
+
+        function showQuestion(steps) {
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            gameState.activeQuestion = { ...randomQ, steps };
+            
+            const modal = document.getElementById('question-modal');
+            const qText = document.getElementById('question-text');
+            const visualArea = document.getElementById('visual-objects');
+            const optionsArea = document.getElementById('answer-options');
+            
+            // Visual Objek Konkret
+            visualArea.innerHTML = '';
+            const emoji = OBJECTS[randomQ.obj];
+            
+            // Layout visual benda
+            const containerA = document.createElement('div');
+            containerA.className = "flex flex-wrap max-w-[40%] justify-center";
+            for(let i=0; i<randomQ.a; i++) containerA.innerHTML += `<span class="text-2xl">${emoji}</span>`;
+            
+            const opSign = document.createElement('div');
+            opSign.className = "text-3xl self-center font-bold px-4";
+            opSign.innerText = randomQ.op;
+
+            const containerB = document.createElement('div');
+            containerB.className = "flex flex-wrap max-w-[40%] justify-center";
+            for(let i=0; i<randomQ.b; i++) containerB.innerHTML += `<span class="text-2xl">${emoji}</span>`;
+
+            visualArea.appendChild(containerA);
+            visualArea.appendChild(opSign);
+            visualArea.appendChild(containerB);
+
+            qText.innerText = `${randomQ.a} ${randomQ.op} ${randomQ.b} = ?`;
+            
+            // Jawaban
+            const correct = randomQ.op === '+' ? randomQ.a + randomQ.b : randomQ.a - randomQ.b;
+            let options = [correct, correct + 1, correct - 1, Math.floor(Math.random() * 20)];
+            options = [...new Set(options)].slice(0, 4); // Hilangkan duplikat
+            options.sort(() => Math.random() - 0.5);
+
+            optionsArea.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-4 border-blue-200 hover:border-blue-500 py-4 text-3xl font-fun rounded-2xl transition transform hover:scale-105 active:bg-blue-50";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, correct);
+                optionsArea.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+            startTimer();
+        }
+
+        function startTimer() {
+            gameState.timeLeft = 15;
+            const display = document.getElementById('timer-display');
+            display.innerText = `⏱ ${gameState.timeLeft}s`;
+            
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                display.innerText = `⏱ ${gameState.timeLeft}s`;
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    checkAnswer(null, null); // Time up
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(chosen, correct) {
+            clearInterval(gameState.timer);
+            const isCorrect = chosen === correct;
+            const p = gameState.players[gameState.currentPlayerIdx];
+            
+            const feedbackModal = document.getElementById('feedback-modal');
+            const icon = document.getElementById('feedback-icon');
+            const title = document.getElementById('feedback-title');
+            const msg = document.getElementById('feedback-msg');
+            
+            if (isCorrect) {
+                // Bonus skor berdasarkan kecepatan
+                const bonus = Math.floor(gameState.timeLeft / 2);
+                p.score += (10 + bonus);
+                p.pos = Math.min(p.pos + gameState.activeQuestion.steps, BOARD_SIZE);
+                
+                icon.innerText = '⭐';
+                title.innerText = 'HEBAT!';
+                title.className = "text-4xl font-fun text-green-600 mb-2";
+                msg.innerText = `Jawaban tepat! Kamu dapat ${10 + bonus} poin dan maju ${gameState.activeQuestion.steps} langkah.`;
+            } else {
+                icon.innerText = '😕';
+                title.innerText = 'AYO COBA LAGI!';
+                title.className = "text-4xl font-fun text-orange-600 mb-2";
+                msg.innerText = chosen === null ? "Waktumu habis!" : "Wah, masih kurang tepat. Tetap di tempat ya!";
+            }
+
+            document.getElementById('question-modal').classList.add('hidden');
+            feedbackModal.classList.remove('hidden');
+            
+            renderPlayers();
+            updateScoreboard();
+        }
+
+        function closeFeedback() {
+            document.getElementById('feedback-modal').classList.add('hidden');
+            
+            const p = gameState.players[gameState.currentPlayerIdx];
+            if (p.pos >= BOARD_SIZE) {
+                showWinner(p);
+            } else {
+                // Ganti giliran
+                gameState.currentPlayerIdx = (gameState.currentPlayerIdx + 1) % gameState.players.length;
+                updateTurnIndicator();
+                updateScoreboard();
+                
+                // Reset dadu
+                gameState.isRolling = false;
+                document.getElementById('roll-btn').disabled = false;
+                document.getElementById('dice-face').innerText = '🎲';
+            }
+        }
+
+        function showWinner(player) {
+            const modal = document.getElementById('winner-modal');
+            document.getElementById('winner-name').innerText = player.name;
+            document.getElementById('final-stats').innerText = `Total Skor: ${player.score}`;
+            modal.classList.remove('hidden');
+        }
+
+        function resetGame() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
